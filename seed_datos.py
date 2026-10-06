@@ -1,6 +1,6 @@
-from database import engine, Base
+from sqlalchemy import text
+from database import engine, Base, SessionLocal
 from models import Mesa, Voto
-from database import SessionLocal
 
 Base.metadata.create_all(bind=engine)
 print("Tablas creadas")
@@ -46,5 +46,12 @@ votos = [
 db.add_all(votos)
 
 db.commit()
+
+# En PostgreSQL, como los ids de las mesas se cargaron a mano (1 a 6),
+# hay que avisarle a la base desde qué número seguir con las mesas nuevas.
+if engine.dialect.name == "postgresql":
+    db.execute(text("SELECT setval(pg_get_serial_sequence('mesas', 'id'), (SELECT MAX(id) FROM mesas))"))
+    db.commit()
+
 print("Datos cargados con éxito")
 db.close()

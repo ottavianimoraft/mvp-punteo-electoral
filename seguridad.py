@@ -1,8 +1,16 @@
+import os
 from datetime import datetime, timedelta
+from dotenv import load_dotenv
 from jose import jwt, JWTError
 from passlib.context import CryptContext
 
-SECRET_KEY = "clave-secreta-de-prueba-ds4p"
+load_dotenv()
+
+# La clave secreta viene de una variable de entorno (archivo .env)
+SECRET_KEY = os.getenv("SECRET_KEY")
+if not SECRET_KEY:
+    raise RuntimeError("Falta la variable de entorno SECRET_KEY")
+
 ALGORITHM = "HS256"
 MINUTOS_EXPIRACION = 60
 
