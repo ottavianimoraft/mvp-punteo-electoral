@@ -23,6 +23,17 @@ Principalmente los fiscales o las agrupaciones que participan de la elección, p
 - Marca automáticamente las mesas que conviene revisar, con tres controles: que no haya más votos que electores, que la participación no sea justo del 100 % y que una sola agrupación no tenga más del 70 % de los votos.
 - Calcula con un modelo de Machine Learning si el riesgo de cada mesa es alto o bajo. El modelo lo entrenamos con datos simulados.
 - Pide usuario y contraseña para entrar.
+- 
+## Aplicación publicada
+
+La aplicación está en línea y se puede probar desde cualquier dispositivo:
+
+- Pantalla de la aplicación: https://mvp-punteo-electoral.streamlit.app
+- Servidor (API y documentación): https://TU-LINK.onrender.com/docs
+
+Usuario de prueba: admin / ds4p2026
+
+Aviso: usamos planes gratuitos, así que si nadie la usó en un rato puede tardar cerca de un minuto en despertar la primera vez.
 
 ## Usuario de prueba
 
