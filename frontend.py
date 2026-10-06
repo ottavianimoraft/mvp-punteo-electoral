@@ -1,9 +1,12 @@
+import os
 import streamlit as st
 import requests
 import pandas as pd
 import plotly.express as px
 
-API = "http://127.0.0.1:8000"
+# Dirección del backend. En la computadora es la local;
+# cuando esté publicado se cambia con la variable de entorno API_URL.
+API = os.getenv("API_URL", "http://127.0.0.1:8000")
 
 st.set_page_config(page_title="Detección de Punteo Electoral", layout="wide")
 
@@ -105,10 +108,60 @@ def pantalla_cargar():
                 st.success(f"Mesa guardada. Resultado del detector: {estado}")
             else:
                 st.warning(f"Mesa guardada. Resultado del detector: {estado}")
+        elif r.status_code == 409:
+            st.error("Ya existe una mesa con ese nombre. Usá otro nombre.")
         elif r.status_code == 422:
             st.error("Datos inválidos: revisá que haya un nombre y al menos un voto cargado.")
         else:
             st.error(f"Error inesperado ({r.status_code})")
+
+
+def pantalla_predicciones():
+    st.title("Predicciones de riesgo")
+    st.write(
+        "El modelo de Machine Learning (Random Forest) mira la participación y la "
+        "concentración de votos de cada mesa y predice si el riesgo es ALTO o BAJO. "
+        "Al lado se muestra lo que dicen las reglas fijas del detector."
+    )
+
+    r = requests.get(f"{API}/resumen", headers=encabezados())
+    if r.status_code == 401:
+        st.session_state.token = None
+        st.rerun()
+
+    filas = []
+    for d in r.json():
+        if d["total_votos"] == 0:
+            continue  # sin votos no se puede predecir
+        rp = requests.get(f"{API}/prediccion/{d['id']}", headers=encabezados())
+        riesgo = rp.json().get("riesgo_predicho", "?")
+        concentracion = max(d["votos"].values()) / d["total_votos"] * 100
+        filas.append({
+            "Mesa": d["nombre"],
+            "Participación (%)": d["participacion"],
+            "Concentración máxima (%)": round(concentracion, 1),
+            "Regla del detector": d["estado"],
+            "Riesgo según el modelo": riesgo,
+        })
+
+    df = pd.DataFrame(filas)
+
+    c1, c2 = st.columns(2)
+    c1.metric("Mesas analizadas", len(df))
+    c2.metric("Mesas con riesgo ALTO", int((df["Riesgo según el modelo"] == "ALTO").sum()))
+
+    st.subheader("Resultado por mesa")
+    st.dataframe(df, hide_index=True)
+
+    st.subheader("Mapa de riesgo")
+    fig = px.scatter(
+        df, x="Participación (%)", y="Concentración máxima (%)",
+        color="Riesgo según el modelo", hover_name="Mesa",
+        color_discrete_map={"ALTO": "#C62828", "BAJO": "#2E7D32"},
+    )
+    fig.add_vline(x=100, line_dash="dash", annotation_text="100% de participación")
+    fig.add_hline(y=70, line_dash="dash", annotation_text="70% de concentración")
+    st.plotly_chart(fig)
 
 
 # ---- Programa principal ----
@@ -116,7 +169,7 @@ if st.session_state.token is None:
     pantalla_login()
 else:
     st.sidebar.title("Menú")
-    pagina = st.sidebar.radio("Pantalla", ["Dashboard", "Cargar Zona"])
+    pagina = st.sidebar.radio("Pantalla", ["Dashboard", "Cargar Zona", "Predicciones"])
     if st.sidebar.button("Cerrar sesión"):
         st.session_state.token = None
         st.rerun()
@@ -125,3 +178,5 @@ else:
         pantalla_dashboard()
     elif pagina == "Cargar Zona":
         pantalla_cargar()
+    elif pagina == "Predicciones":
+        pantalla_predicciones()
